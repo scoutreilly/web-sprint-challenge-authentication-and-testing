@@ -34,16 +34,16 @@ const checkUsernameExists = async (req, res, next) => {
       res.status(422).json({ message: "invalid credentials" });
     }
   } catch (e) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "server error" });
   }
 };
 
 router.post(
   "/register",
-  checkUsernameFree,
   checkPayload,
+  checkUsernameFree,
   async (req, res, next) => {
-    res.end("implement register, please!");
+    // res.end("implement register, please!");
     /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -69,25 +69,26 @@ router.post(
     4- On FAILED registration due to the `username` being taken,
       the response body should include a string exactly as follows: "username taken".
   */
-    // try {
-    //   const hash = bcrypt.hashSync(req.body.password, 2);
-    //   const newUser = await add({
-    //     username: req.body.username,
-    //     password: hash,
-    //   });
-    //   res.status(200).json(newUser);
-    // } catch (e) {
-    //   next();
-    // }
+    try {
+      const hash = bcrypt.hashSync(req.body.password, 2);
+      const newUser = await add({
+        username: req.body.username,
+        password: hash,
+      });
+      res.status(200).json(newUser);
+    } catch (e) {
+      next();
+    }
   }
 );
 
 router.post(
   "/login",
-  checkUsernameExists,
   checkPayload,
+  checkUsernameExists,
+
   async (req, res, next) => {
-    res.end("implement login, please!");
+    // res.end("implement login, please!");
     /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -111,22 +112,22 @@ router.post(
     4- On FAILED login due to `username` not existing in the db, or `password` being incorrect,
       the response body should include a string exactly as follows: "invalid credentials".
   */
-    // try {
-    //   const verified = bcrypt.compareSync(
-    //     req.body.password,
-    //     req.userData.password
-    //   );
-    //   if (verified) {
-    //     const token = makeToken(req.userData);
-    //     res
-    //       .status(200)
-    //       .json({ message: `welcome ${req.body.username}!`, token });
-    //   } else {
-    //     res.status(401).json({ message: "invalid credentials" });
-    //   }
-    // } catch (e) {
-    //   next();
-    // }
+    try {
+      const verified = bcrypt.compareSync(
+        req.body.password,
+        req.userData.password
+      );
+      if (verified) {
+        const token = makeToken(req.userData);
+        res
+          .status(200)
+          .json({ message: `welcome ${req.body.username}!`, token });
+      } else {
+        res.status(401).json({ message: "invalid credentials" });
+      }
+    } catch (e) {
+      next();
+    }
   }
 );
 
