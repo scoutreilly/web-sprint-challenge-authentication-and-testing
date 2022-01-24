@@ -1,8 +1,50 @@
-const router = require('express').Router();
+const router = require("express").Router();
+const { makeToken } = require("../secrets");
+const bcrypt = require("bcryptjs");
+const { add, findBy } = require("./model");
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
-  /*
+const checkUsernameFree = async (req, res, next) => {
+  try {
+    const rows = await findBy({ username: req.body.username });
+    if (!rows.length) {
+      next();
+    } else {
+      res.status(422).json({ message: "username taken" });
+    }
+  } catch (e) {
+    res.status(500).json({ message: `server error ${e}` });
+  }
+};
+
+const checkPayload = (req, res, next) => {
+  if (!req.body.username || !req.body.password) {
+    res.status(401).json({ message: "username and password required" });
+  } else {
+    next();
+  }
+};
+
+const checkUsernameExists = async (req, res, next) => {
+  try {
+    const rows = await findBy({ username: req.body.username });
+    if (rows.length) {
+      req.userData = rows[0];
+      next();
+    } else {
+      res.status(422).json({ message: "invalid credentials" });
+    }
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+router.post(
+  "/register",
+  checkUsernameFree,
+  checkPayload,
+  async (req, res, next) => {
+    // res.end("implement register, please!");
+    /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
     DO NOT EXCEED 2^8 ROUNDS OF HASHING!
@@ -27,11 +69,26 @@ router.post('/register', (req, res) => {
     4- On FAILED registration due to the `username` being taken,
       the response body should include a string exactly as follows: "username taken".
   */
-});
+    try {
+      const hash = bcrypt.hashSync(req.body.password, 2);
+      const newUser = await add({
+        username: req.body.username,
+        password: hash,
+      });
+      res.status(200).json(newUser);
+    } catch (e) {
+      next();
+    }
+  }
+);
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
-  /*
+router.post(
+  "/login",
+  checkUsernameExists,
+  checkPayload,
+  async (req, res, next) => {
+    // res.end("implement login, please!");
+    /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
 
@@ -54,6 +111,23 @@ router.post('/login', (req, res) => {
     4- On FAILED login due to `username` not existing in the db, or `password` being incorrect,
       the response body should include a string exactly as follows: "invalid credentials".
   */
-});
+    try {
+      const verified = bcrypt.compareSync(
+        req.body.password,
+        req.userData.password
+      );
+      if (verified) {
+        const token = makeToken(req.userData);
+        res
+          .status(200)
+          .json({ message: `welcome ${req.body.username}!`, token });
+      } else {
+        res.status(401).json({ message: "invalid credentials" });
+      }
+    } catch (e) {
+      next();
+    }
+  }
+);
 
 module.exports = router;
